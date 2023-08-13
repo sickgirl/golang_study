@@ -5,6 +5,7 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	jwt "github.com/golang-jwt/jwt/v5"
 	"golang_study/2/internal/domain"
 	"golang_study/2/internal/service"
@@ -244,31 +245,31 @@ func (c *UserHandler) Login(ctx *gin.Context) {
 // Edit 用户编译信息
 func (c *UserHandler) Edit(ctx *gin.Context) {
 	type EditReq struct {
-		BirthDay string `json:"birth_day"`
-		NickName string `json:"nick_name"`
-		Profile  string `json:"profile"`
+		BirthDay string `json:"birth_day" binding:"required"`
+		NickName string `json:"nick_name" binding:"required,min=3,max=20"`
+		Profile  string `json:"profile" binding:"required,max=500"`
 	}
 
 	var req EditReq
 	// 当我们调用 Bind 方法的时候，如果有问题，Bind 方法已经直接写响应回去了
 	if err := ctx.Bind(&req); err != nil {
+		ctx.String(http.StatusOK, err.Error())
 		return
 	}
 	uc := ctx.MustGet("user").(UserClaims)
-	// 输入的时间字符串
-	dateString := "2023-08-09"
 
 	// 定义时间字符串的格式
 	layout := "2006-01-02"
 
 	// 使用 time.Parse() 函数将字符串转换为 time.Time 类型
-	_, err1 := time.Parse(layout, dateString)
+	_, err1 := time.Parse(layout, req.BirthDay)
 	if err1 != nil {
+		println(req.BirthDay)
 		ctx.String(http.StatusOK, "用户生日输入异常,请重试")
 		return
 	}
 
-	err := c.svc.Edit(ctx.Request.Context(), req.NickName, req.Profile, dateString, uc.Id)
+	err := c.svc.Edit(ctx.Request.Context(), req.NickName, req.Profile, req.BirthDay, uc.Id)
 	if err == service.ErrInvalidUserOrPassword {
 		ctx.String(http.StatusOK, "用户名或者密码不正确，请重试")
 		return
@@ -276,15 +277,19 @@ func (c *UserHandler) Edit(ctx *gin.Context) {
 
 	ctx.String(http.StatusOK, "修改成功")
 }
+func customDateValidator(fl validator.FieldLevel) bool {
+	_, err := time.Parse("2006-01-02", fl.Field().String())
+	return err == nil
+}
 
 // ProfileJWT 用户详情, JWT 版本
 func (c *UserHandler) ProfileJWT(ctx *gin.Context) {
 	type Profile struct {
-		Email    string
-		Phone    string
-		BirthDay string
-		NickName string
-		Profile  string
+		Email    string `json:"email"`
+		Phone    string `json:"phone"`
+		BirthDay string `json:"birth_day"`
+		NickName string `json:"nick_name"`
+		Profile  string `json:"profile"`
 	}
 	uc := ctx.MustGet("user").(UserClaims)
 	u, err := c.svc.Profile(ctx, uc.Id)
