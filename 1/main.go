@@ -5,12 +5,11 @@ import (
 	"fmt"
 )
 
-//第一周作业
 //完成 切片的删除方法(通过下标来删除切片元素) 通过泛型支持 多种类型
 
 func main() {
 	s1 := []int{1, 2, 3, 4}
-	s2, e1 := DelSlice[int](s1, 3)
+	s2, e1 := DelSlice(s1, 3)
 
 	if e1 != nil {
 		fmt.Printf("error %v", e1)
@@ -19,7 +18,7 @@ func main() {
 	}
 
 	s3 := []string{"a", "b", "c", "d"}
-	s4, e2 := DelSlice[string](s3, 1)
+	s4, e2 := DelSlice(s3, 1)
 	if e2 != nil {
 		fmt.Printf("error %v", e2)
 	} else {
@@ -57,3 +56,6 @@ func DelSlice[T indexed](s []T, i int) ([]T, error) {
 
 	return rs, nil
 }
+
+//todo
+//
